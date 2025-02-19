@@ -1,9 +1,9 @@
 services:
   db:
     image: postgres:15
-    container_name: db-exchanger
+    container_name: gw-currency-wallet
     environment:
-      POSTGRES_DB: gw-exchanger
+      POSTGRES_DB: gw-currency-wallet
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:

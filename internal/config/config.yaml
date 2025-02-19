@@ -1,0 +1,28 @@
+server:
+  host: "localhost"             # Адрес сервера
+  port: 8080                    # Порт сервера
+  read_timeout: 5s              # Таймаут чтения запроса
+  write_timeout: 10s            # Таймаут записи ответа
+  max_header_bytes: 1048576     # Максимальный размер заголовков (1 MB)
+
+logging:
+  level: "debug"                # Уровень логирования: debug, info, warn, error
+  format: "json"                # Формат логов: text, json
+  output_file: ""               # Файл для записи логов (пусто для вывода в консоль)
+  kafka_topic: ""
+  kafka_broker: ""
+
+database:
+  dsn: postgres://postgres:postgres@localhost:5432/gw-currency-wallet?sslmode=disable
+
+redis:
+  addr: "localhost:6379"
+  password: "your_secure_password"
+  db: 0
+
+auth:
+  secret_key: "ncjnduncuncuwceunwiuencwcwe"
+  token_ttl: 1h
+
+
+# Приоритет подгрузки переменных - .env!
