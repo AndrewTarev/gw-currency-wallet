@@ -65,7 +65,5 @@ func (h *Auth) Login(c *gin.Context) {
 		return
 	}
 
-	c.SetCookie("token", token, int(h.cfg.TokenTTl), "/", "", true, true)
-
 	c.JSON(http.StatusOK, gin.H{"token": token})
 }
