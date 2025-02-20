@@ -46,13 +46,18 @@ type RedisConfig struct {
 	DB       int    `mapstructure:"db"`
 }
 
+type ExchangeService struct {
+	Addr string `mapstructure:"addr"`
+}
+
 // Полная конфигурация
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Logging  LoggerConfig   `mapstructure:"logging"`
-	Database PostgresConfig `mapstructure:"database"`
-	Auth     AuthConfig     `mapstructure:"auth"`
-	Redis    RedisConfig    `mapstructure:"redis"`
+	Server          ServerConfig    `mapstructure:"server"`
+	Logging         LoggerConfig    `mapstructure:"logging"`
+	Database        PostgresConfig  `mapstructure:"database"`
+	Auth            AuthConfig      `mapstructure:"auth"`
+	Redis           RedisConfig     `mapstructure:"redis"`
+	ExchangeService ExchangeService `mapstructure:"exchange_service_grpc"`
 }
 
 // LoadConfig загружает конфигурацию из файлов и переменных окружения

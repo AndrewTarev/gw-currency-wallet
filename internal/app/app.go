@@ -5,6 +5,7 @@ import (
 
 	config "gw-currency-wallet/internal/config"
 	"gw-currency-wallet/internal/delivery/rest"
+	"gw-currency-wallet/internal/infrastructure/grpc"
 	"gw-currency-wallet/internal/server"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage"
@@ -21,9 +22,10 @@ func StartApplication(cfg *config.Config, logger *logrus.Logger) error {
 	defer dbConn.Close()
 
 	// Создаем зависимости
+	exClient := grpc.NewUserServiceClient(cfg.ExchangeService.Addr)
 	jwtManager := utils.NewJWTManager(cfg)
 	repo := storage.NewStorage(dbConn, logger)
-	services := service.NewService(repo, logger, jwtManager)
+	services := service.NewService(repo, logger, jwtManager, exClient)
 	handlers := rest.NewHandler(services, logger, &cfg.Auth)
 
 	// Настройка и запуск сервера

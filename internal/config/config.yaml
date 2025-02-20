@@ -13,7 +13,7 @@ logging:
   kafka_broker: ""
 
 database:
-  dsn: postgres://postgres:postgres@localhost:5432/gw-currency-wallet?sslmode=disable
+  dsn: postgres://postgres:postgres@localhost:5433/gw-currency-wallet?sslmode=disable
 
 redis:
   addr: "localhost:6379"
@@ -23,6 +23,9 @@ redis:
 auth:
   secret_key: "ncjnduncuncuwceunwiuencwcwe"
   token_ttl: 1h
+
+exchange_service_grpc:
+  addr: "0.0.0.0:50051"
 
 
 # Приоритет подгрузки переменных - .env!

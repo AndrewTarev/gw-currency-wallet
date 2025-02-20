@@ -14,13 +14,22 @@ type AuthHandler interface {
 	Login(c *gin.Context)
 }
 
+type WalletHandler interface{}
+
+type Exchange interface {
+	GetExchangeRates(c *gin.Context)
+}
+
 type Handler struct {
 	AuthHandler
+	// WalletHandler
+	Exchange
 }
 
 func NewHandler(svc *service.Service, logger *logrus.Logger, cfg *config.AuthConfig) *Handler {
 	return &Handler{
 		AuthHandler: NewAuthHandler(svc, logger, cfg),
+		Exchange:    NewExchangeHandler(svc),
 	}
 }
 
@@ -39,13 +48,20 @@ func (h *Handler) InitRoutes(logger *logrus.Logger) *gin.Engine {
 	{
 		auth := apiV1.Group("")
 		{
-			auth.POST("/register", h.Register)
-			auth.POST("/login", h.Login)
+			auth.POST("/register", h.AuthHandler.Register)
+			auth.POST("/login", h.AuthHandler.Login)
 		}
-		// balance := apiV1.Group("/balance")
-		// {
-		// 	balance.GET("/")
-		// }
+		wallet := apiV1.Group("/wallet")
+		{
+			wallet.GET("/balance")
+			wallet.POST("/deposit")
+			wallet.POST("/withdraw")
+		}
+		exchange := apiV1.Group("/exchange")
+		{
+			exchange.GET("/rates", h.Exchange.GetExchangeRates)
+			exchange.POST("/")
+		}
 	}
 
 	return router
