@@ -25,7 +25,7 @@ func NewAuthService(stor *storage.Storage, logger *logrus.Logger, jwtManager *ut
 	}
 }
 
-func (a *Auth) Register(c context.Context, user *models.UserRegister) error {
+func (a *Auth) Register(c context.Context, user models.UserRegister) error {
 	passwordHash, err := utils.HashPassword(user.Password)
 	if err != nil {
 		return err

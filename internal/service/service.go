@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 
 	"gw-currency-wallet/internal/infrastructure/grpc"
@@ -12,7 +13,7 @@ import (
 )
 
 type AuthService interface {
-	Register(c context.Context, input *models.UserRegister) error
+	Register(c context.Context, input models.UserRegister) error
 	Login(c context.Context, userInput *models.UserLogin) (string, error)
 }
 
@@ -21,9 +22,14 @@ type ExchangeService interface {
 	GetRate(c context.Context, fromCurrency, toCurrency string) (string, error)
 }
 
+type WalletService interface {
+	GetBalance(c context.Context, userID string) (models.WalletResponse, error)
+}
+
 type Service struct {
 	AuthService
 	ExchangeService
+	WalletService
 }
 
 func NewService(
@@ -31,9 +37,11 @@ func NewService(
 	logger *logrus.Logger,
 	jwtManager *utils.JWTManager,
 	exClient *grpc.ExchangeClient,
+	cache *redis.Client,
 ) *Service {
 	return &Service{
 		AuthService:     NewAuthService(stor, logger, jwtManager),
-		ExchangeService: NewExchangeService(exClient),
+		ExchangeService: NewExchangeService(exClient, cache, logger),
+		WalletService:   NewWalletService(stor, logger),
 	}
 }
