@@ -51,17 +51,6 @@ type ExchangeService struct {
 	Addr string `mapstructure:"addr"`
 }
 
-// KafkaConfig структура для хранения настроек Kafka
-type KafkaConfig struct {
-	Brokers                []string `mapstructure:"brokers"`
-	Topic                  string   `mapstructure:"topic"`
-	RequiredAcks           string   `mapstructure:"required_acks"`
-	BatchTimeout           int64    `mapstructure:"batch_timeout"`
-	BatchSize              int      `mapstructure:"batch_size"`
-	AllowAutoTopicCreation bool     `mapstructure:"allow_auto_topic_creation"`
-	GroupID                string   `mapstructure:"group_id"`
-}
-
 // Config Полная конфигурация
 type Config struct {
 	Server          ServerConfig    `mapstructure:"server"`
@@ -70,7 +59,6 @@ type Config struct {
 	Auth            AuthConfig      `mapstructure:"auth"`
 	Redis           RedisConfig     `mapstructure:"redis"`
 	ExchangeService ExchangeService `mapstructure:"exchange_service_grpc"`
-	// Kafka           KafkaConfig     `mapstructure:"kafka"`
 }
 
 // LoadConfig загружает конфигурацию из файлов и переменных окружения
