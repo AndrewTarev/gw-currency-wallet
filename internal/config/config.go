@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Конфигурация сервера
+// ServerConfig Конфигурация сервера
 type ServerConfig struct {
 	Host           string        `mapstructure:"host"`
 	Port           int           `mapstructure:"port"`
@@ -19,7 +19,7 @@ type ServerConfig struct {
 	MaxHeaderBytes int           `mapstructure:"max_header_bytes"`
 }
 
-// Конфигурация логирования
+// LoggerConfig Конфигурация логирования
 type LoggerConfig struct {
 	Level       string   `mapstructure:"level"`
 	Format      string   `mapstructure:"format"`
@@ -28,13 +28,13 @@ type LoggerConfig struct {
 	KafkaBroker []string `mapstructure:"kafka_broker"`
 }
 
-// Конфигурация базы данных
+// PostgresConfig Конфигурация базы данных
 type PostgresConfig struct {
 	Dsn         string `mapstructure:"dsn"`
 	MigratePath string `mapstructure:"migrate_path"`
 }
 
-// Конфигурация Auth
+// AuthConfig Конфигурация Auth
 type AuthConfig struct {
 	SecretKey string        `mapstructure:"secret_key"`
 	TokenTTl  time.Duration `mapstructure:"token_ttl"`
@@ -46,11 +46,23 @@ type RedisConfig struct {
 	DB       int    `mapstructure:"db"`
 }
 
+// ExchangeService адрес grpc микросервиса gw-exchanger
 type ExchangeService struct {
 	Addr string `mapstructure:"addr"`
 }
 
-// Полная конфигурация
+// KafkaConfig структура для хранения настроек Kafka
+type KafkaConfig struct {
+	Brokers                []string `mapstructure:"brokers"`
+	Topic                  string   `mapstructure:"topic"`
+	RequiredAcks           string   `mapstructure:"required_acks"`
+	BatchTimeout           int64    `mapstructure:"batch_timeout"`
+	BatchSize              int      `mapstructure:"batch_size"`
+	AllowAutoTopicCreation bool     `mapstructure:"allow_auto_topic_creation"`
+	GroupID                string   `mapstructure:"group_id"`
+}
+
+// Config Полная конфигурация
 type Config struct {
 	Server          ServerConfig    `mapstructure:"server"`
 	Logging         LoggerConfig    `mapstructure:"logging"`
@@ -58,6 +70,7 @@ type Config struct {
 	Auth            AuthConfig      `mapstructure:"auth"`
 	Redis           RedisConfig     `mapstructure:"redis"`
 	ExchangeService ExchangeService `mapstructure:"exchange_service_grpc"`
+	// Kafka           KafkaConfig     `mapstructure:"kafka"`
 }
 
 // LoadConfig загружает конфигурацию из файлов и переменных окружения

@@ -1,0 +1,27 @@
+# Используем минимальный образ Go
+FROM golang:1.23-alpine AS builder
+
+# Устанавливаем рабочую директорию внутри контейнера
+WORKDIR /app
+
+# Копируем go.mod и go.sum и загружаем зависимости
+COPY ../../go.mod ../../go.sum ./
+RUN go mod download
+
+# Копируем исходный код
+COPY ../../ .
+
+# Компилируем бинарный файл
+RUN CGO_ENABLED=0 GOOS=linux go build -o kafka-consumer ./cmd/kafka-consumer/main.go
+
+# Создаем минимальный образ для продакшена
+FROM alpine:latest
+
+WORKDIR /app
+
+# Копируем скомпилированный бинарник из builder-контейнера
+COPY --from=builder /app/kafka-consumer .
+COPY --from=builder /app/internal/config /app/internal/config
+
+# Запускаем сервис
+CMD ["./kafka-consumer"]

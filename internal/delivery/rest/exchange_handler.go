@@ -32,7 +32,7 @@ func (h *ExchangeHandler) GetExchangeRates(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"rates": rates})
 }
 
-func (h *ExchangeHandler) GetExchangeRateForCurrency(c *gin.Context) {
+func (h *ExchangeHandler) ExchangeCurrency(c *gin.Context) {
 	var input models.ExchangeRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.Error(err)
@@ -47,9 +47,6 @@ func (h *ExchangeHandler) GetExchangeRateForCurrency(c *gin.Context) {
 
 	// Преобразуем float64 в decimal.Decimal
 	amountDecimal := decimal.NewFromFloat(input.Amount)
-
-	// Теперь amountDecimal можно использовать для дальнейших вычислений
-	// Пример: округление до 2 знаков после запятой
 	amountDecimal = amountDecimal.Round(2)
 
 	rate, err := h.svc.GetRate(c, input.FromCurrency, input.ToCurrency)

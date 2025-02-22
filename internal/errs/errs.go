@@ -12,6 +12,8 @@ var (
 
 // wallets
 var (
-	ErrWalletNotFound = errors.New("wallet not found")
-	ErrInvalidUserId  = errors.New("invalid user id")
+	ErrWalletNotFound    = errors.New("wallet not found")
+	ErrInvalidUserId     = errors.New("invalid user id")
+	ErrInsufficientFunds = errors.New("insufficient funds")
+	ErrInvalidAmount     = errors.New("invalid amount, must be greater than zero")
 )

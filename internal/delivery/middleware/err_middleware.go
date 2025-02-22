@@ -61,6 +61,15 @@ func ErrorHandler(logger *logrus.Logger) gin.HandlerFunc {
 				case errors.Is(err, errs.ErrWalletNotFound):
 					statusCode = http.StatusNotFound
 					message = "Wallet not found"
+				case errors.Is(err, errs.ErrInsufficientFunds):
+					statusCode = http.StatusBadRequest
+					message = "Insufficient funds"
+				case errors.Is(err, errs.ErrInvalidAmount):
+					statusCode = http.StatusBadRequest
+					message = "invalid amount, must be greater than zero"
+				case errors.Is(err, errs.ErrInvalidUserId):
+					statusCode = http.StatusBadRequest
+					message = "invalid user id"
 
 				// Обработка ошибок от gRPC
 				case isGRPCError(err):

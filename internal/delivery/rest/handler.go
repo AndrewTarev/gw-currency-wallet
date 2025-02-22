@@ -8,6 +8,7 @@ import (
 	"gw-currency-wallet/internal/delivery/middleware"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models/validate"
+	"gw-currency-wallet/internal/utils"
 )
 
 type AuthHandler interface {
@@ -17,11 +18,13 @@ type AuthHandler interface {
 
 type Exchange interface {
 	GetExchangeRates(c *gin.Context)
-	GetExchangeRateForCurrency(c *gin.Context)
+	ExchangeCurrency(c *gin.Context)
 }
 
 type WalletHandler interface {
 	GetBalance(c *gin.Context)
+	Deposit(c *gin.Context)
+	Withdraw(c *gin.Context)
 }
 
 type Handler struct {
@@ -39,38 +42,43 @@ func NewHandler(
 	return &Handler{
 		AuthHandler:   NewAuthHandler(svc, logger, cfg, validate),
 		Exchange:      NewExchangeHandler(svc, validate),
-		WalletHandler: NewWalletHandler(svc),
+		WalletHandler: NewWalletHandler(svc, validate),
 	}
 }
 
-func (h *Handler) InitRoutes(logger *logrus.Logger) *gin.Engine {
+func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager) *gin.Engine {
 	router := gin.New()
 
-	// Обработчик ошибок
+	// Обработчик ошибок и паник
 	router.Use(middleware.ErrorHandler(logger))
-	// Обработчик паник
 	router.Use(middleware.RecoverMiddleware(logger))
 
 	// docs.SwaggerInfo.BasePath = "/api/v1"
 	// router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	apiV1 := router.Group("/api/v1")
+
+	// Группа маршрутов без авторизации
+	auth := apiV1.Group("")
 	{
-		auth := apiV1.Group("")
-		{
-			auth.POST("/register", h.AuthHandler.Register)
-			auth.POST("/login", h.AuthHandler.Login)
-		}
-		wallet := apiV1.Group("/wallet")
+		auth.POST("/register", h.AuthHandler.Register)
+		auth.POST("/login", h.AuthHandler.Login)
+	}
+
+	// Группа маршрутов с авторизацией
+	protected := apiV1.Group("")
+	protected.Use(middleware.AuthMiddleware(jwtManager))
+	{
+		wallet := protected.Group("/wallet")
 		{
 			wallet.GET("/balance", h.WalletHandler.GetBalance)
-			wallet.POST("/deposit")
-			wallet.POST("/withdraw")
+			wallet.POST("/deposit", h.WalletHandler.Deposit)
+			wallet.POST("/withdraw", h.WalletHandler.Withdraw)
 		}
-		exchange := apiV1.Group("/exchange")
+		exchange := protected.Group("/exchange")
 		{
 			exchange.GET("/rates", h.Exchange.GetExchangeRates)
-			exchange.POST("/", h.Exchange.GetExchangeRateForCurrency)
+			exchange.POST("/", h.Exchange.ExchangeCurrency)
 		}
 	}
 

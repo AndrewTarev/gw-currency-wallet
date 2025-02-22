@@ -12,3 +12,6 @@ test-mock:
 
 gen-docs:
 	swag init -g ./cmd/main.go -o ./docs
+
+dev-docker:
+	docker-compose -f docker-compose.dev.yaml up --build

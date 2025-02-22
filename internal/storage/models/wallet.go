@@ -9,3 +9,8 @@ type WalletResponse struct {
 	BalanceUsd decimal.Decimal `json:"balance_usd"`
 	BalanceEur decimal.Decimal `json:"balance_eur"`
 }
+
+type WalletTransaction struct {
+	Currency string  `json:"currency" validate:"required,len=3,alpha"`
+	Amount   float64 `json:"amount" validate:"required,number,gt=0"`
+}

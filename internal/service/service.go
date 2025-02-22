@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
 	"gw-currency-wallet/internal/infrastructure/grpc"
@@ -23,7 +25,9 @@ type ExchangeService interface {
 }
 
 type WalletService interface {
-	GetBalance(c context.Context, userID string) (models.WalletResponse, error)
+	GetBalance(c context.Context, userID uuid.UUID) (models.WalletResponse, error)
+	Deposit(c context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error)
+	Withdraw(c context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error)
 }
 
 type Service struct {

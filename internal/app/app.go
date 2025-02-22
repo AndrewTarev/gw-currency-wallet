@@ -28,6 +28,7 @@ func StartApplication(cfg *config.Config, logger *logrus.Logger) error {
 	if err != nil {
 		panic(err)
 	}
+
 	validator := validate.NewValidator()                            // Общий валидатор входных данных
 	exClient := grpc.NewUserServiceClient(cfg.ExchangeService.Addr) // grpc клиент для связи с gw-exchanger
 	jwtManager := utils.NewJWTManager(cfg)                          // Генерация и парсинг JWT
@@ -36,6 +37,6 @@ func StartApplication(cfg *config.Config, logger *logrus.Logger) error {
 	handlers := rest.NewHandler(services, logger, &cfg.Auth, validator)
 
 	// Настройка и запуск сервера
-	server.SetupAndRunServer(&cfg.Server, handlers.InitRoutes(logger), logger)
+	server.SetupAndRunServer(&cfg.Server, handlers.InitRoutes(logger, jwtManager), logger)
 	return nil
 }
