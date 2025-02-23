@@ -22,6 +22,7 @@ type AuthService interface {
 type ExchangeService interface {
 	GetRates(c context.Context) (map[string]string, error)
 	GetRate(c context.Context, fromCurrency, toCurrency string) (string, error)
+	ExchangeCurrency(c context.Context, userID uuid.UUID, fromCurrency string, toCurrency string, amount decimal.Decimal, exchangedAmount decimal.Decimal) (models.WalletResponse, error)
 }
 
 type WalletService interface {
@@ -45,7 +46,7 @@ func NewService(
 ) *Service {
 	return &Service{
 		AuthService:     NewAuthService(stor, logger, jwtManager),
-		ExchangeService: NewExchangeService(exClient, cache, logger),
+		ExchangeService: NewExchangeService(exClient, cache, logger, stor),
 		WalletService:   NewWalletService(stor, logger),
 	}
 }

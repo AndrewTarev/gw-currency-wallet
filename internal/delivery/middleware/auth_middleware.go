@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"gw-currency-wallet/internal/utils"
 )
@@ -39,4 +41,21 @@ func AuthMiddleware(jwtManager *utils.JWTManager) gin.HandlerFunc {
 		c.Set("user_id", claims.UserID)
 		c.Next()
 	}
+}
+
+// GetUserUUID отдает id юзера и превращает в формат uuid
+func GetUserUUID(c *gin.Context) (uuid.UUID, error) {
+	// Получаем userID из контекста
+	userID, exists := c.Get("user_id")
+	if !exists {
+		return uuid.UUID{}, fmt.Errorf("user_id is missing in context")
+	}
+
+	// Преобразуем userID в UUID
+	userUUID, err := uuid.Parse(userID.(string)) // userID приведен к string
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("invalid user_id format")
+	}
+
+	return userUUID, nil
 }

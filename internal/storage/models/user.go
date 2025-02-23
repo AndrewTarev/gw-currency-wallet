@@ -24,3 +24,11 @@ type UserOutput struct {
 	PasswordHash string    `json:"password_hash"`
 	CreatedAt    time.Time `json:"created_at"`
 }
+
+type RegisterSuccessResponse struct {
+	Message string `json:"message"`
+}
+
+type LoginSuccessResponse struct {
+	Token string `json:"token"`
+}

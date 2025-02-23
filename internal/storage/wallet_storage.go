@@ -28,6 +28,12 @@ func NewWalletStorage(db *pgxpool.Pool, logger *logrus.Logger) *Wallet {
 	}
 }
 
+var validCurrencies = map[string]bool{
+	"RUB": true,
+	"USD": true,
+	"EUR": true,
+}
+
 // GetBalance извлекает информацию о балансе пользователя
 func (w *Wallet) GetBalance(c context.Context, userID uuid.UUID) (models.WalletResponse, error) {
 	// SQL запрос для получения данных баланса по userID
@@ -58,7 +64,14 @@ func (w *Wallet) GetBalance(c context.Context, userID uuid.UUID) (models.WalletR
 }
 
 // Deposit Пополнение баланса и возврат нового состояния кошелька
-func (w *Wallet) Deposit(ctx context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error) {
+func (w *Wallet) Deposit(c context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error) {
+	currency = strings.ToUpper(currency)
+
+	// Проверяем, что валюта поддерживается
+	if !validCurrencies[currency] {
+		return models.WalletResponse{}, errs.ErrUnsupportedCurrency
+	}
+
 	query := fmt.Sprintf(
 		`UPDATE wallets 
 		SET balance_%s = balance_%s + $1 
@@ -68,7 +81,7 @@ func (w *Wallet) Deposit(ctx context.Context, userID uuid.UUID, currency string,
 	)
 
 	var response models.WalletResponse
-	err := w.db.QueryRow(ctx, query, amount, userID).Scan(&response.BalanceRub, &response.BalanceUsd, &response.BalanceEur)
+	err := w.db.QueryRow(c, query, amount, userID).Scan(&response.BalanceRub, &response.BalanceUsd, &response.BalanceEur)
 	if err != nil {
 		return models.WalletResponse{}, err
 	}
@@ -76,7 +89,13 @@ func (w *Wallet) Deposit(ctx context.Context, userID uuid.UUID, currency string,
 }
 
 // Withdraw Списание средств и возврат нового состояния кошелька
-func (w *Wallet) Withdraw(ctx context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error) {
+func (w *Wallet) Withdraw(c context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error) {
+	currency = strings.ToUpper(currency)
+
+	// Проверяем, что валюта поддерживается
+	if !validCurrencies[currency] {
+		return models.WalletResponse{}, errs.ErrUnsupportedCurrency
+	}
 	query := fmt.Sprintf(
 		`UPDATE wallets 
 		SET balance_%s = balance_%s - $1 
@@ -86,12 +105,51 @@ func (w *Wallet) Withdraw(ctx context.Context, userID uuid.UUID, currency string
 	)
 
 	var response models.WalletResponse
-	err := w.db.QueryRow(ctx, query, amount, userID).Scan(&response.BalanceRub, &response.BalanceUsd, &response.BalanceEur)
+	err := w.db.QueryRow(c, query, amount, userID).Scan(&response.BalanceRub, &response.BalanceUsd, &response.BalanceEur)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return models.WalletResponse{}, errs.ErrInsufficientFunds
 		}
 		return models.WalletResponse{}, err
 	}
 	return response, nil
+}
+
+func (w *Wallet) Exchange(
+	c context.Context,
+	userID uuid.UUID,
+	fromCurrency string,
+	toCurrency string,
+	amount decimal.Decimal,
+	exchangedAmount decimal.Decimal,
+) (models.WalletResponse, error) {
+	var newBalance models.WalletResponse
+
+	fromCurrency = strings.ToUpper(fromCurrency)
+	toCurrency = strings.ToUpper(toCurrency)
+
+	// Проверяем, что валюта поддерживается
+	if !validCurrencies[fromCurrency] || !validCurrencies[toCurrency] {
+		return models.WalletResponse{}, errs.ErrUnsupportedCurrency
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE wallets 
+		SET balance_%s = balance_%s - $1, balance_%s = balance_%s + $2
+		WHERE user_id = $3 AND balance_%s >= $1 
+		RETURNING balance_rub, balance_usd, balance_eur`,
+		strings.ToLower(fromCurrency), strings.ToLower(fromCurrency),
+		strings.ToLower(toCurrency), strings.ToLower(toCurrency),
+		strings.ToLower(fromCurrency),
+	)
+
+	row := w.db.QueryRow(c, query, amount, exchangedAmount, userID)
+	if err := row.Scan(&newBalance.BalanceRub, &newBalance.BalanceUsd, &newBalance.BalanceEur); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.WalletResponse{}, errs.ErrInsufficientFunds
+		}
+		return models.WalletResponse{}, err
+	}
+
+	return newBalance, nil
 }

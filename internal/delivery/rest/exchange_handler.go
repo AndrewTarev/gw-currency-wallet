@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 
+	"gw-currency-wallet/internal/delivery/middleware"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
@@ -23,16 +24,48 @@ func NewExchangeHandler(svc *service.Service, validate *validate.Validator) *Exc
 	}
 }
 
+// GetExchangeRates godoc
+// @Summary Получить текущие курсы валют
+// @Description Возвращает список текущих курсов обмена валют
+// @Tags exchange
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.ExchangeRatesResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /exchange/rates [get]
 func (h *ExchangeHandler) GetExchangeRates(c *gin.Context) {
 	rates, err := h.svc.GetRates(c)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"rates": rates})
+
+	successResponse := models.ExchangeRatesResponse{
+		Rates: rates,
+	}
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
+// ExchangeCurrency godoc
+// @Summary Обмен валют
+// @Description Обмен валюты с использованием заданного количества и курсов валют
+// @Tags exchange
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body models.ExchangeRequest true "Данные для обмена валюты"
+// @Success 200 {object} models.ExchangeCurrencyResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /exchange [post]
 func (h *ExchangeHandler) ExchangeCurrency(c *gin.Context) {
+	userID, err := middleware.GetUserUUID(c)
+	if err != nil {
+		c.Error(err)
+	}
+
 	var input models.ExchangeRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.Error(err)
@@ -49,11 +82,32 @@ func (h *ExchangeHandler) ExchangeCurrency(c *gin.Context) {
 	amountDecimal := decimal.NewFromFloat(input.Amount)
 	amountDecimal = amountDecimal.Round(2)
 
-	rate, err := h.svc.GetRate(c, input.FromCurrency, input.ToCurrency)
+	rateStr, err := h.svc.GetRate(c, input.FromCurrency, input.ToCurrency)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"rate": rate})
+	// Преобразуем курс из строки в decimal.Decimal
+	rate, err := decimal.NewFromString(rateStr)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	exchangedAmount := amountDecimal.Mul(rate)
+
+	newBalance, err := h.svc.ExchangeService.ExchangeCurrency(c, userID, input.FromCurrency, input.ToCurrency, amountDecimal, exchangedAmount)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	successResponse := models.ExchangeCurrencyResponse{
+		Message:         "Exchange successful",
+		ExchangedAmount: exchangedAmount,
+		NewBalance:      newBalance,
+	}
+
+	c.JSON(http.StatusOK, successResponse)
 }

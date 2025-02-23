@@ -70,6 +70,9 @@ func ErrorHandler(logger *logrus.Logger) gin.HandlerFunc {
 				case errors.Is(err, errs.ErrInvalidUserId):
 					statusCode = http.StatusBadRequest
 					message = "invalid user id"
+				case errors.Is(err, errs.ErrUnsupportedCurrency):
+					statusCode = http.StatusBadRequest
+					message = "unsupported currency"
 
 				// Обработка ошибок от gRPC
 				case isGRPCError(err):

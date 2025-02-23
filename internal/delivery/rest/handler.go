@@ -3,7 +3,10 @@ package rest
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"gw-currency-wallet/docs"
 	config "gw-currency-wallet/internal/config"
 	"gw-currency-wallet/internal/delivery/middleware"
 	"gw-currency-wallet/internal/service"
@@ -53,13 +56,13 @@ func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager
 	router.Use(middleware.ErrorHandler(logger))
 	router.Use(middleware.RecoverMiddleware(logger))
 
-	// docs.SwaggerInfo.BasePath = "/api/v1"
-	// router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	docs.SwaggerInfo.BasePath = "/api/v1"
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	apiV1 := router.Group("/api/v1")
 
 	// Группа маршрутов без авторизации
-	auth := apiV1.Group("")
+	auth := apiV1.Group("/auth")
 	{
 		auth.POST("/register", h.AuthHandler.Register)
 		auth.POST("/login", h.AuthHandler.Login)

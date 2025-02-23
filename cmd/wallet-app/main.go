@@ -6,6 +6,16 @@ import (
 	"gw-currency-wallet/pkg/logging"
 )
 
+// @title My API
+// @version 1.0
+// @description This is an example API that demonstrates Swagger documentation integration.
+// @host localhost:8080
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Введите токен в формате: Bearer {your_token}
 func main() {
 	cfg, err := config.LoadConfig("./internal/config")
 	if err != nil {

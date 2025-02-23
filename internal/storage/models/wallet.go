@@ -14,3 +14,12 @@ type WalletTransaction struct {
 	Currency string  `json:"currency" validate:"required,len=3,alpha"`
 	Amount   float64 `json:"amount" validate:"required,number,gt=0"`
 }
+
+type GetBalanceResponse struct {
+	Balance WalletResponse `json:"balance"`
+}
+
+type WalletOperationsResponse struct {
+	Message string         `json:"message"`
+	Balance WalletResponse `json:"new_balance"`
+}

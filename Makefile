@@ -11,7 +11,7 @@ test-mock:
 	mockgen -source=internal/service/service.go -destination=internal/service/mocks/mock_service.go -package=mocks
 
 gen-docs:
-	swag init -g ./cmd/main.go -o ./docs
+	swag init -g ./cmd/wallet-app/main.go -o ./docs
 
 dev-docker:
 	docker-compose -f docker-compose.dev.yaml up --build

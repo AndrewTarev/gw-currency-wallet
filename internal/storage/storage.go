@@ -20,6 +20,7 @@ type WalletStorage interface {
 	GetBalance(c context.Context, userID uuid.UUID) (models.WalletResponse, error)
 	Deposit(ctx context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error)
 	Withdraw(ctx context.Context, userID uuid.UUID, currency string, amount decimal.Decimal) (models.WalletResponse, error)
+	Exchange(c context.Context, userID uuid.UUID, fromCurrency string, toCurrency string, amount decimal.Decimal, exchangedAmount decimal.Decimal) (models.WalletResponse, error)
 }
 
 type Storage struct {

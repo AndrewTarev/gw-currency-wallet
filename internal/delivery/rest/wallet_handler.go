@@ -1,13 +1,12 @@
 package rest
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 
+	"gw-currency-wallet/internal/delivery/middleware"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
@@ -25,25 +24,20 @@ func NewWalletHandler(svc *service.Service, validate *validate.Validator) *Walle
 	}
 }
 
-// GetUserUUID отдает id юзера и превращает в формат uuid
-func GetUserUUID(c *gin.Context) (uuid.UUID, error) {
-	// Получаем userID из контекста
-	userID, exists := c.Get("user_id")
-	if !exists {
-		return uuid.UUID{}, fmt.Errorf("user_id is missing in context")
-	}
-
-	// Преобразуем userID в UUID
-	userUUID, err := uuid.Parse(userID.(string)) // userID приведен к string
-	if err != nil {
-		return uuid.UUID{}, fmt.Errorf("invalid user_id format")
-	}
-
-	return userUUID, nil
-}
-
+// GetBalance godoc
+// @Summary Получить баланс кошелька
+// @Description Возвращает текущий баланс пользователя во всех валютах
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} models.GetBalanceResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 401 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /wallet/balance [get]
 func (w *Wallet) GetBalance(c *gin.Context) {
-	userID, err := GetUserUUID(c)
+	userID, err := middleware.GetUserUUID(c)
 	if err != nil {
 		c.Error(err)
 	}
@@ -53,11 +47,29 @@ func (w *Wallet) GetBalance(c *gin.Context) {
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"balance": response})
+
+	successResponse := models.GetBalanceResponse{
+		Balance: response,
+	}
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
+// Deposit godoc
+// @Summary Пополнить баланс
+// @Description Пополняет баланс пользователя на указанную сумму в указанной валюте
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body models.WalletTransaction true "Данные для пополнения"
+// @Success 200 {object} models.WalletOperationsResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 401 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /wallet/deposit [post]
 func (w *Wallet) Deposit(c *gin.Context) {
-	userID, err := GetUserUUID(c)
+	userID, err := middleware.GetUserUUID(c)
 	if err != nil {
 		c.Error(err)
 		return
@@ -81,10 +93,7 @@ func (w *Wallet) Deposit(c *gin.Context) {
 		return
 	}
 
-	successResponse := struct {
-		Message string                `json:"message"`
-		Balance models.WalletResponse `json:"new_balance"`
-	}{
+	successResponse := models.WalletOperationsResponse{
 		Message: "Account topped up successfully",
 		Balance: balance,
 	}
@@ -92,8 +101,21 @@ func (w *Wallet) Deposit(c *gin.Context) {
 	c.JSON(http.StatusOK, successResponse)
 }
 
+// Withdraw godoc
+// @Summary Снять средства
+// @Description Списывает указанную сумму в указанной валюте с баланса пользователя
+// @Tags wallet
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param input body models.WalletTransaction true "Данные для снятия средств"
+// @Success 200 {object} models.WalletOperationsResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 401 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /wallet/withdraw [post]
 func (w *Wallet) Withdraw(c *gin.Context) {
-	userID, err := GetUserUUID(c)
+	userID, err := middleware.GetUserUUID(c)
 	if err != nil {
 		c.Error(err)
 		return
@@ -115,10 +137,7 @@ func (w *Wallet) Withdraw(c *gin.Context) {
 		return
 	}
 
-	successResponse := struct {
-		Message string                `json:"message"`
-		Balance models.WalletResponse `json:"new_balance"`
-	}{
+	successResponse := models.WalletOperationsResponse{
 		Message: "Withdrawal successful",
 		Balance: balance,
 	}

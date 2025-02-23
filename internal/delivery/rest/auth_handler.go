@@ -33,6 +33,17 @@ func NewAuthHandler(
 	}
 }
 
+// Register godoc
+// @Summary Регистрация нового пользователя
+// @Description Создает нового пользователя с предоставленными данными
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body models.UserRegister true "Данные для регистрации пользователя"
+// @Success 200 {object} models.RegisterSuccessResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /auth/register [post]
 func (h *Auth) Register(c *gin.Context) {
 	var input *models.UserRegister
 
@@ -53,9 +64,25 @@ func (h *Auth) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "UserOutput registered successfully"})
+	successResponse := models.RegisterSuccessResponse{
+		Message: "UserOutput registered successfully",
+	}
+
+	c.JSON(http.StatusOK, successResponse)
 }
 
+// Login godoc
+// @Summary Вход пользователя в систему
+// @Description Авторизует пользователя и возвращает токен
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param input body models.UserLogin true "Данные для входа пользователя"
+// @Success 200 {object} models.LoginSuccessResponse
+// @Failure 400 {object} middleware.ValidationErrorResponse
+// @Failure 401 {object} middleware.ValidationErrorResponse
+// @Failure 500 {object} middleware.ValidationErrorResponse
+// @Router /auth/login [post]
 func (h *Auth) Login(c *gin.Context) {
 	var input *models.UserLogin
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -69,5 +96,9 @@ func (h *Auth) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	successResponse := models.LoginSuccessResponse{
+		Token: token,
+	}
+
+	c.JSON(http.StatusOK, successResponse)
 }
