@@ -1,0 +1,346 @@
+basePath: /api/v1
+definitions:
+  middleware.ValidationErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: integer
+          fields:
+            additionalProperties:
+              type: string
+            description: Поля с ошибками
+            type: object
+          message:
+            type: string
+        type: object
+    type: object
+  models.ExchangeCurrencyResponse:
+    properties:
+      exchanged_amount:
+        type: number
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/models.WalletResponse'
+    type: object
+  models.ExchangeRatesResponse:
+    properties:
+      rates:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  models.ExchangeRequest:
+    properties:
+      amount:
+        type: number
+      from_currency:
+        type: string
+      to_currency:
+        type: string
+    required:
+    - amount
+    - from_currency
+    - to_currency
+    type: object
+  models.GetBalanceResponse:
+    properties:
+      balance:
+        $ref: '#/definitions/models.WalletResponse'
+    type: object
+  models.LoginSuccessResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  models.RegisterSuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  models.UserLogin:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.UserRegister:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 16
+        minLength: 8
+        type: string
+      username:
+        maxLength: 16
+        minLength: 5
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  models.WalletOperationsResponse:
+    properties:
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/models.WalletResponse'
+    type: object
+  models.WalletResponse:
+    properties:
+      balance_eur:
+        type: number
+      balance_rub:
+        type: number
+      balance_usd:
+        type: number
+    type: object
+  models.WalletTransaction:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+    required:
+    - amount
+    - currency
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is an example API that demonstrates Swagger documentation integration.
+  title: My API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизует пользователя и возвращает токен
+      parameters:
+      - description: Данные для входа пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LoginSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      summary: Вход пользователя в систему
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создает нового пользователя с предоставленными данными
+      parameters:
+      - description: Данные для регистрации пользователя
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.UserRegister'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.RegisterSuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /exchange:
+    post:
+      consumes:
+      - application/json
+      description: Обмен валюты с использованием заданного количества и курсов валют
+      parameters:
+      - description: Данные для обмена валюты
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.ExchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ExchangeCurrencyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обмен валют
+      tags:
+      - exchange
+  /exchange/rates:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список текущих курсов обмена валют
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ExchangeRatesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить текущие курсы валют
+      tags:
+      - exchange
+  /wallet/balance:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает текущий баланс пользователя во всех валютах
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GetBalanceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить баланс кошелька
+      tags:
+      - wallet
+  /wallet/deposit:
+    post:
+      consumes:
+      - application/json
+      description: Пополняет баланс пользователя на указанную сумму в указанной валюте
+      parameters:
+      - description: Данные для пополнения
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.WalletTransaction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.WalletOperationsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Пополнить баланс
+      tags:
+      - wallet
+  /wallet/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Списывает указанную сумму в указанной валюте с баланса пользователя
+      parameters:
+      - description: Данные для снятия средств
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/models.WalletTransaction'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.WalletOperationsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/middleware.ValidationErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Снять средства
+      tags:
+      - wallet
+securityDefinitions:
+  BearerAuth:
+    description: 'Введите токен в формате: Bearer {your_token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
