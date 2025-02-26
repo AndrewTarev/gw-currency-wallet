@@ -7,6 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"gw-currency-wallet/internal/delivery/middleware"
+	"gw-currency-wallet/internal/errs"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
@@ -66,23 +67,25 @@ func (h *ExchangeHandler) ExchangeCurrency(c *gin.Context) {
 		c.Error(err)
 	}
 
-	var input models.ExchangeRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
+	input, exists := c.Get("validatedInput")
+	if !exists {
+		c.Error(errs.ErrValidationNotWorking)
 		return
 	}
 
+	userInput := input.(models.ExchangeRequest)
+
 	// Валидируем входные данные
-	if err := h.validate.ValidateStruct(input); err != nil {
+	if err := h.validate.ValidateStruct(&userInput); err != nil {
 		c.Error(err)
 		return
 	}
 
 	// Преобразуем float64 в decimal.Decimal
-	amountDecimal := decimal.NewFromFloat(input.Amount)
+	amountDecimal := decimal.NewFromFloat(userInput.Amount)
 	amountDecimal = amountDecimal.Round(2)
 
-	rateStr, err := h.svc.GetRate(c, input.FromCurrency, input.ToCurrency)
+	rateStr, err := h.svc.GetRate(c, userInput.FromCurrency, userInput.ToCurrency)
 	if err != nil {
 		c.Error(err)
 		return
@@ -97,7 +100,7 @@ func (h *ExchangeHandler) ExchangeCurrency(c *gin.Context) {
 
 	exchangedAmount := amountDecimal.Mul(rate)
 
-	newBalance, err := h.svc.ExchangeService.ExchangeCurrency(c, userID, input.FromCurrency, input.ToCurrency, amountDecimal, exchangedAmount)
+	newBalance, err := h.svc.ExchangeService.ExchangeCurrency(c, userID, userInput.FromCurrency, userInput.ToCurrency, amountDecimal, exchangedAmount)
 	if err != nil {
 		c.Error(err)
 		return

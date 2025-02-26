@@ -10,6 +10,7 @@ import (
 	config "gw-currency-wallet/internal/config"
 	"gw-currency-wallet/internal/delivery/middleware"
 	"gw-currency-wallet/internal/service"
+	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
 	"gw-currency-wallet/internal/utils"
 )
@@ -49,7 +50,7 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager) *gin.Engine {
+func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager, v *validate.Validator) *gin.Engine {
 	router := gin.New()
 
 	// Обработчик ошибок и паник
@@ -64,8 +65,8 @@ func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager
 	// Группа маршрутов без авторизации
 	auth := apiV1.Group("/auth")
 	{
-		auth.POST("/register", h.AuthHandler.Register)
-		auth.POST("/login", h.AuthHandler.Login)
+		auth.POST("/register", middleware.ValidationMiddleware[models.UserRegister](v), h.AuthHandler.Register)
+		auth.POST("/login", middleware.ValidationMiddleware[models.UserLogin](v), h.AuthHandler.Login)
 	}
 
 	// Группа маршрутов с авторизацией
@@ -75,13 +76,13 @@ func (h *Handler) InitRoutes(logger *logrus.Logger, jwtManager *utils.JWTManager
 		wallet := protected.Group("/wallet")
 		{
 			wallet.GET("/balance", h.WalletHandler.GetBalance)
-			wallet.POST("/deposit", h.WalletHandler.Deposit)
-			wallet.POST("/withdraw", h.WalletHandler.Withdraw)
+			wallet.POST("/deposit", middleware.ValidationMiddleware[models.WalletTransaction](v), h.WalletHandler.Deposit)
+			wallet.POST("/withdraw", middleware.ValidationMiddleware[models.WalletTransaction](v), h.WalletHandler.Withdraw)
 		}
 		exchange := protected.Group("/exchange")
 		{
 			exchange.GET("/rates", h.Exchange.GetExchangeRates)
-			exchange.POST("/", h.Exchange.ExchangeCurrency)
+			exchange.POST("/", middleware.ValidationMiddleware[models.ExchangeRequest](v), h.Exchange.ExchangeCurrency)
 		}
 	}
 

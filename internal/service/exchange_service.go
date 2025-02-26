@@ -63,7 +63,6 @@ func (e *Exchange) GetRates(c context.Context) (map[string]string, error) {
 	// Сохраняем в кэш на 5 минут
 	data, _ = json.Marshal(rates.Rates)
 	e.cache.Set(c, cacheKey, data, 5*time.Minute)
-
 	return rates.Rates, nil
 }
 

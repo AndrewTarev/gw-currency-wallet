@@ -29,14 +29,14 @@ func StartApplication(cfg *config.Config, logger *logrus.Logger) error {
 		panic(err)
 	}
 
-	validator := validate.NewValidator()                            // Общий валидатор входных данных
-	exClient := grpc.NewUserServiceClient(cfg.ExchangeService.Addr) // grpc клиент для связи с gw-exchanger
-	jwtManager := utils.NewJWTManager(cfg)                          // Генерация и парсинг JWT
+	validator := validate.NewValidator()                                    // Общий валидатор входных данных
+	exClient := grpc.NewUserServiceClient(cfg.ExchangeService.Addr, logger) // grpc клиент для связи с gw-exchanger
+	jwtManager := utils.NewJWTManager(cfg)                                  // Генерация и парсинг JWT
 	repo := storage.NewStorage(dbConn, logger)
 	services := service.NewService(repo, logger, jwtManager, exClient, cache)
 	handlers := rest.NewHandler(services, logger, &cfg.Auth, validator)
 
 	// Настройка и запуск сервера
-	server.SetupAndRunServer(&cfg.Server, handlers.InitRoutes(logger, jwtManager), logger)
+	server.SetupAndRunServer(&cfg.Server, handlers.InitRoutes(logger, jwtManager, validator), logger)
 	return nil
 }

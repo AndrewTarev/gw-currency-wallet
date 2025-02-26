@@ -15,3 +15,6 @@ gen-docs:
 
 dev-docker:
 	docker-compose -f docker-compose.dev.yaml up --build
+
+integration-tests:
+	docker-compose -f docker-compose.test.yaml up --build

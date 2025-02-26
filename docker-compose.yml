@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:15
-    container_name: postgreSQL
     environment:
       POSTGRES_DB: ${DATABASE_DBNAME}
       POSTGRES_USER: ${DATABASE_USER}
@@ -45,12 +44,9 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: [
-      "redis-server",
-      "--requirepass", "${REDIS_PASSWORD}",
-      "--save", "",                 # ❌ Отключает RDB (снимки)
-      "--appendonly", "no"          # ❌ Отключает AOF (журнал команд)
-    ]
+    volumes:
+      - redis_data:/data
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     environment:
       - TZ=UTC
     healthcheck:
@@ -72,7 +68,10 @@ services:
     networks:
       - my_network
 
+volumes:
+  redis_data:
+    driver: local
 
 networks:
   my_network:
-    driver: bridge
+    external: true

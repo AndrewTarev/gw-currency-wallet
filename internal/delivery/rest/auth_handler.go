@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	config "gw-currency-wallet/internal/config"
+	"gw-currency-wallet/internal/errs"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
@@ -45,27 +46,22 @@ func NewAuthHandler(
 // @Failure 500 {object} middleware.ValidationErrorResponse
 // @Router /auth/register [post]
 func (h *Auth) Register(c *gin.Context) {
-	var input *models.UserRegister
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
+	input, exists := c.Get("validatedInput")
+	if !exists {
+		c.Error(errs.ErrValidationNotWorking)
 		return
 	}
 
-	// Валидируем входные данные
-	if err := h.validate.ValidateStruct(input); err != nil {
-		c.Error(err)
-		return
-	}
+	userInput := input.(models.UserRegister)
 
-	err := h.svc.Register(c, *input)
+	err := h.svc.Register(c, userInput)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	successResponse := models.RegisterSuccessResponse{
-		Message: "UserOutput registered successfully",
+		Message: "User registered successfully",
 	}
 
 	c.JSON(http.StatusOK, successResponse)
@@ -84,13 +80,15 @@ func (h *Auth) Register(c *gin.Context) {
 // @Failure 500 {object} middleware.ValidationErrorResponse
 // @Router /auth/login [post]
 func (h *Auth) Login(c *gin.Context) {
-	var input *models.UserLogin
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
+	input, exists := c.Get("validatedInput")
+	if !exists {
+		c.Error(errs.ErrValidationNotWorking)
 		return
 	}
 
-	token, err := h.svc.AuthService.Login(c, input)
+	userInput := input.(models.UserLogin)
+
+	token, err := h.svc.AuthService.Login(c, &userInput)
 	if err != nil {
 		c.Error(err)
 		return

@@ -2,14 +2,14 @@ package middleware
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"runtime/debug"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"gw-currency-wallet/internal/errs"
 )
@@ -26,7 +26,7 @@ type ValidationErrorResponse struct {
 // ErrorHandler глобальный middleware для обработки ошибок
 func ErrorHandler(logger *logrus.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Next() // Выполняем все обработчики
+		c.Next()
 
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
@@ -34,62 +34,51 @@ func ErrorHandler(logger *logrus.Logger) gin.HandlerFunc {
 			var message string
 			var fieldErrors map[string]string
 
-			// Если ошибка — это валидация, обрабатываем ее отдельно
-			var validationErrs validator.ValidationErrors
-			if errors.As(err, &validationErrs) {
+			switch {
+			case errors.Is(err, errs.ErrUserAlreadyExists):
 				statusCode = http.StatusBadRequest
-				message = "Validation error"
-				fieldErrors = make(map[string]string)
-
-				for _, fieldErr := range validationErrs {
-					fieldErrors[fieldErr.Field()] = validationErrorMessage(fieldErr)
-				}
-			} else {
-				// Обрабатываем кастомные ошибки
-				switch {
-				case errors.Is(err, errs.ErrUserAlreadyExists):
-					statusCode = http.StatusBadRequest
-					message = "username already exists"
-					fieldErrors = map[string]string{"username": "field already exists"}
-				case errors.Is(err, errs.ErrEmailAlreadyUsed):
-					statusCode = http.StatusBadRequest
-					message = "email already used"
-					fieldErrors = map[string]string{"email": "field already exists"}
-				case errors.Is(err, errs.ErrUserNotFound) || errors.Is(err, errs.ErrInvalidPassword):
-					statusCode = http.StatusUnauthorized
-					message = "Invalid username or password"
-				case errors.Is(err, errs.ErrWalletNotFound):
+				message = "Username already exists"
+				fieldErrors = map[string]string{"username": "field already exists"}
+			case errors.Is(err, errs.ErrEmailAlreadyUsed):
+				statusCode = http.StatusBadRequest
+				message = "Email already used"
+				fieldErrors = map[string]string{"email": "field already exists"}
+			case errors.Is(err, errs.ErrUserNotFound) || errors.Is(err, errs.ErrInvalidPassword):
+				statusCode = http.StatusUnauthorized
+				message = errs.ErrInvalidCredentials.Error()
+			case errors.Is(err, errs.ErrWalletNotFound):
+				statusCode = http.StatusNotFound
+				message = "Wallet not found"
+			case errors.Is(err, errs.ErrInsufficientFunds):
+				statusCode = http.StatusBadRequest
+				message = "Insufficient funds"
+			case errors.Is(err, errs.ErrInvalidAmount):
+				statusCode = http.StatusBadRequest
+				message = "Invalid amount, must be greater than zero"
+			case errors.Is(err, errs.ErrInvalidUserId):
+				statusCode = http.StatusBadRequest
+				message = "Invalid user ID"
+			case errors.Is(err, errs.ErrUnsupportedCurrency):
+				statusCode = http.StatusBadRequest
+				message = "Unsupported currency"
+			case isGRPCError(err):
+				// Проверяем, если ошибка gRPC имеет код NotFound
+				st, ok := status.FromError(err)
+				if ok && st.Code() == codes.NotFound {
 					statusCode = http.StatusNotFound
-					message = "Wallet not found"
-				case errors.Is(err, errs.ErrInsufficientFunds):
-					statusCode = http.StatusBadRequest
-					message = "Insufficient funds"
-				case errors.Is(err, errs.ErrInvalidAmount):
-					statusCode = http.StatusBadRequest
-					message = "invalid amount, must be greater than zero"
-				case errors.Is(err, errs.ErrInvalidUserId):
-					statusCode = http.StatusBadRequest
-					message = "invalid user id"
-				case errors.Is(err, errs.ErrUnsupportedCurrency):
-					statusCode = http.StatusBadRequest
-					message = "unsupported currency"
-
-				// Обработка ошибок от gRPC
-				case isGRPCError(err):
+					message = st.Message() // Используем описание из gRPC ошибки
+				} else {
+					// Для других типов ошибок, связанных с gRPC
 					statusCode = http.StatusBadRequest
 					message = err.Error()
-				default:
-					statusCode = http.StatusInternalServerError
-					message = "Internal server error"
 				}
-			}
-
-			// Логируем критические ошибки (500)
-			if statusCode == http.StatusInternalServerError {
+			default:
+				statusCode = http.StatusInternalServerError
+				message = "Internal server error"
 				logger.WithFields(logrus.Fields{
 					"method":      c.Request.Method + " " + c.Request.URL.Path,
 					"error":       err.Error(),
-					"stack_trace": string(debug.Stack()), // Stack trace для дебага
+					"stack_trace": string(debug.Stack()),
 				}).Error("❌ Unhandled RestAPI error")
 			}
 
@@ -106,27 +95,8 @@ func ErrorHandler(logger *logrus.Logger) gin.HandlerFunc {
 				},
 			}
 
-			// Отправляем JSON-ответ
 			c.JSON(statusCode, errorResponse)
 		}
-	}
-}
-
-// validationErrorMessage формирует читаемое сообщение ошибки
-func validationErrorMessage(fe validator.FieldError) string {
-	switch fe.Tag() {
-	case "required":
-		return "is required"
-	case "min":
-		return fmt.Sprintf("must be at least %s characters", fe.Param())
-	case "max":
-		return fmt.Sprintf("must be at most %s characters", fe.Param())
-	case "email":
-		return "must be a valid email address"
-	case "len":
-		return fmt.Sprintf("must be exactly %s characters", fe.Param())
-	default:
-		return "is invalid"
 	}
 }
 

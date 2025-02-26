@@ -7,6 +7,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"gw-currency-wallet/internal/delivery/middleware"
+	"gw-currency-wallet/internal/errs"
 	"gw-currency-wallet/internal/service"
 	"gw-currency-wallet/internal/storage/models"
 	"gw-currency-wallet/internal/storage/models/validate"
@@ -72,22 +73,17 @@ func (w *Wallet) Deposit(c *gin.Context) {
 	userID, err := middleware.GetUserUUID(c)
 	if err != nil {
 		c.Error(err)
+	}
+
+	input, exists := c.Get("validatedInput")
+	if !exists {
+		c.Error(errs.ErrValidationNotWorking)
 		return
 	}
 
-	var input models.WalletTransaction
+	userInput := input.(models.WalletTransaction)
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
-		return
-	}
-
-	if err := w.validate.ValidateStruct(input); err != nil {
-		c.Error(err)
-		return
-	}
-
-	balance, err := w.svc.WalletService.Deposit(c, userID, input.Currency, decimal.NewFromFloat(input.Amount))
+	balance, err := w.svc.WalletService.Deposit(c, userID, userInput.Currency, decimal.NewFromFloat(userInput.Amount))
 	if err != nil {
 		c.Error(err)
 		return
@@ -121,17 +117,15 @@ func (w *Wallet) Withdraw(c *gin.Context) {
 		return
 	}
 
-	var input models.WalletTransaction
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.Error(err)
+	input, exists := c.Get("validatedInput")
+	if !exists {
+		c.Error(errs.ErrValidationNotWorking)
 		return
 	}
 
-	if err := w.validate.ValidateStruct(input); err != nil {
-		c.Error(err)
-		return
-	}
-	balance, err := w.svc.WalletService.Withdraw(c, userID, input.Currency, decimal.NewFromFloat(input.Amount))
+	userInput := input.(models.WalletTransaction)
+
+	balance, err := w.svc.WalletService.Withdraw(c, userID, userInput.Currency, decimal.NewFromFloat(userInput.Amount))
 	if err != nil {
 		c.Error(err)
 		return

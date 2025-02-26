@@ -2,9 +2,9 @@ package grpc
 
 import (
 	"context"
-	"log"
 
 	exchange "github.com/AndrewTarev/proto-repo/gen/exchange"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -12,21 +12,21 @@ import (
 type ExchangeClient struct {
 	client exchange.ExchangeServiceClient
 	conn   *grpc.ClientConn
+	logger *logrus.Logger
 }
 
-func NewUserServiceClient(grpcAddr string) *ExchangeClient {
+func NewUserServiceClient(grpcAddr string, logger *logrus.Logger) *ExchangeClient {
 	// creds := credentials.NewTLS(&tls.Config{
 	// 	InsecureSkipVerify: true,
 	// })
-
+	logger.Debugf("connecting to gRPC server: %s", grpcAddr)
 	conn, err := grpc.NewClient(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials())) // TODO Для продакш, подставь grpc.WithTransportCredentials(creds)
 	if err != nil {
-		log.Fatalf("Failed to connect to UserService: %v", err)
-
+		logger.Fatalf("Failed to connect to UserService: %v", err)
 	}
 
 	client := exchange.NewExchangeServiceClient(conn)
-	return &ExchangeClient{client: client, conn: conn}
+	return &ExchangeClient{client: client, conn: conn, logger: logger}
 }
 
 // GetExchangeRates Получить все курсы обмена валют

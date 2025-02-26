@@ -29,6 +29,7 @@ WORKDIR /app
 COPY --from=builder /app/internal/config /app/internal/config
 COPY --from=builder /app/main .
 COPY --from=builder /app/docs /app/docs
+COPY --from=builder /app/tests/ /app/tests/
 COPY --from=builder /app/migrations /app/migrations
 COPY ../../.env .env
 
